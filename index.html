@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Does a Planner's Improver Improve Itself?</title>
 <meta name="description" content="Three controlled designs for recursive self-improvement on a simulated Unitree G1 humanoid: zero accepted handoffs, two adaptations that held up, and a measured account of why.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Does a Planner's Improver Improve Itself?">
+<meta property="og:description" content="Controlled tests of recursive self-improvement on a simulated Unitree G1 humanoid, with interactive replays of the logged attempts.">
+<meta property="og:url" content="https://edwardwang66.github.io/planner-rsi-g1/">
+<meta property="og:image" content="https://edwardwang66.github.io/planner-rsi-g1/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://edwardwang66.github.io/planner-rsi-g1/assets/og.png">
 <style>
 :root{
   --bg:#fbfaf7; --surface:#ffffff; --ink:#1b1d21; --muted:#5d6470; --line:#e3e0d8;
@@ -109,9 +119,32 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14.5px;border-top:1px so
 
 <section id="demos"><div class="wrap">
   <h2>Try it</h2>
-  <p>Four small tools that run in your browser on the data behind the report. The first replays logged physics attempts. The other three let you change an input and see what the numbers do.</p>
+  <p>Five small tools that run in your browser on the data behind the report. The first two replay logged physics attempts. The other three let you change an input and see what the numbers do.</p>
 
-  <h3>1. Replay the logged attempts</h3>
+    <h3>1. Watch the robot walk</h3>
+  <p>The logged state of the robot, played back in 3D: pelvis pose and all 33 joint angles, recorded at 200 Hz in Isaac Sim and shown at 20 Hz. Your browser computes the body positions from those angles. Drag to orbit, scroll to zoom, and click a planner to follow it.</p>
+  <div class="demo" id="demo-3d">
+    <div class="controls">
+      <label>World <select id="r3-world" aria-label="World"></select></label>
+      <button type="button" id="r3-follow" aria-pressed="true">Follow robot</button>
+    </div>
+    <div class="demo-grid">
+      <div class="stage stage3d"><canvas id="r3-canvas" aria-label="3D view of the robots replaying logged attempts"></canvas><div class="loading" id="r3-loading">Loading the robot model (2.7 MB)…</div></div>
+      <div>
+        <div class="arms" id="r3-arms"></div>
+        <p class="small" id="r3-note"></p>
+        <p class="small">Each robot is tinted with its planner's colour. Obstacles and goals are drawn to the logged world's dimensions; the mesh is the G1 model decimated to about 52,000 triangles.</p>
+      </div>
+    </div>
+    <div class="transport">
+      <button type="button" class="primary" id="r3-play">Play</button>
+      <input type="range" id="r3-seek" min="0" max="135" step="0.05" value="0" aria-label="Time">
+      <span class="time" id="r3-time">0.0 s</span>
+      <select id="r3-speed" aria-label="Playback speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option><option value="8">8×</option></select>
+    </div>
+  </div>
+
+<h3>2. Replay the logged attempts from above</h3>
   <p>Every track below is a real attempt from Isaac Sim, sampled at 5 Hz. All planners in one world start from the same pose and face the same obstacles and goals; only the planner differs.</p>
   <div class="demo" id="demo-replay">
     <div class="controls">
@@ -140,7 +173,7 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14.5px;border-top:1px so
     </div>
   </div>
 
-  <h3>2. Drive the robot with your own option library</h3>
+  <h3>3. Drive the robot with your own option library</h3>
   <p>Drag the goals and obstacles, choose which options the planner may use, and run it. The motion is drawn from measured executions of each option, so an option the planner believes in can still go nowhere.</p>
   <div class="demo" id="demo-play">
     <div class="demo-grid">
@@ -176,7 +209,7 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14.5px;border-top:1px so
     </div>
   </div>
 
-  <h3>3. Does the best library carry over to a new condition?</h3>
+  <h3>4. Does the best library carry over to a new condition?</h3>
   <p>Each dot is one of 40 random 9-option libraries, placed by its pass rate under two conditions. If the dots line up, a library remembered from the first condition is still a good choice in the second, and there is little for a smarter improver to add.</p>
   <div class="demo" id="demo-regime">
     <div class="controls">
@@ -199,7 +232,7 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14.5px;border-top:1px so
     </div>
   </div>
 
-  <h3>4. How large must an effect be for the gate to see it?</h3>
+  <h3>5. How large must an effect be for the gate to see it?</h3>
   <p>The handoff gate is an exact one-sided sign test on paired worlds at 0.05. Set how often the child wins and loses a world against its control, and how many fresh worlds a round has.</p>
   <div class="demo" id="demo-gate">
     <div class="demo-grid">
@@ -323,7 +356,7 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14.5px;border-top:1px so
 
 <section id="reproduce"><div class="wrap">
   <h2>Reproduce the report</h2>
-  <p>The report rebuilds from stored results with one command. It runs no physics and no evaluator rollouts, redraws the figures, rebuilds the PDF, and checks 16 numbers quoted in the text against the data.</p>
+  <p>In the project folder, the report rebuilds from stored results with one command. It runs no physics and no evaluator rollouts, redraws the figures, rebuilds the PDF, and checks 16 numbers quoted in the text against the data.</p>
   <pre><code>python -B tmp/pdfs/final_20261112/reproduce.py</code></pre>
   <div class="tablewrap"><table>
     <thead><tr><th>What</th><th>Where</th></tr></thead>
@@ -336,10 +369,22 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14.5px;border-top:1px so
       <tr><td>Next design (draft)</td><td><code>docs/superpowers/specs/2026-11-24-v6-llm-planner-code-design-draft.md</code></td></tr>
     </tbody>
   </table></div>
+
+  <h3>Code and data</h3>
+  <p>This repository holds the page, the report and the data behind the demos. The simulator code, evaluator and analysis scripts named above live in the course project folder, which is not public yet; the paths are given so the work can be located when it is released.</p>
+  <h3>Cite</h3>
+<pre><code>@misc{wang2026plannerrsi,
+  title  = {Does a Planner's Improver Improve Itself? Controlled Tests of
+            Recursive Self-Improvement on a Simulated Humanoid},
+  author = {Wang, Edward},
+  year   = {2026},
+  note   = {ECE 285 course project, UC San Diego},
+  url    = {https://edwardwang66.github.io/planner-rsi-g1/}
+}</code></pre>
 </div></section>
 
 <footer><div class="wrap">
-  Simulated Unitree G1 in Isaac Sim 5.1 / Isaac Lab, with the official Unitree locomotion policy, frozen. All experiments are in simulation.
+  Simulated Unitree G1 in Isaac Sim 5.1 / Isaac Lab, with the official Unitree locomotion policy, frozen. All experiments are in simulation. The 3D view uses Unitree's published G1 model, decimated for the web.
 </div></footer>
 
 <div id="lightbox" role="dialog" aria-label="Enlarged figure"><img alt=""></div>
@@ -355,5 +400,7 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14.5px;border-top:1px so
 })();
 </script>
 <script src="demos.js" defer></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module" src="robot3d.js"></script>
 </body>
 </html>
