@@ -72,11 +72,12 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14.5px;border-top:1px so
   header{padding-top:40px}
 }
 </style>
+<link rel="stylesheet" href="demos.css">
 </head>
 <body>
 <nav><div class="wrap">
   <a class="brand" href="#top">Planner RSI · Unitree G1</a>
-  <a href="#question">Question</a><a href="#designs">Designs</a><a href="#results">Results</a>
+  <a href="#demos">Try it</a><a href="#question">Question</a><a href="#designs">Designs</a><a href="#results">Results</a>
   <a href="#why">Why no handoff</a><a href="#literature">Literature</a><a href="#next">Next</a><a href="#reproduce">Reproduce</a>
 </div></nav>
 
@@ -87,6 +88,7 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14.5px;border-top:1px so
   <div class="byline">Edward Wang · UC San Diego · ECE 285, Fall 2026</div>
   <div class="cta">
     <a class="btn primary" href="assets/final-report.pdf">Read the report (PDF)</a>
+    <a class="btn" href="#demos">Try the demos</a>
     <a class="btn" href="#results">See the results</a>
     <a class="btn" href="#reproduce">Reproduce</a>
   </div>
@@ -104,6 +106,122 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14.5px;border-top:1px so
     <div class="tile"><div class="num">20+</div><div class="lab">regimes tested for whether remembered solutions stop transferring</div></div>
   </div>
 </div></header>
+
+<section id="demos"><div class="wrap">
+  <h2>Try it</h2>
+  <p>Four small tools that run in your browser on the data behind the report. The first replays logged physics attempts. The other three let you change an input and see what the numbers do.</p>
+
+  <h3>1. Replay the logged attempts</h3>
+  <p>Every track below is a real attempt from Isaac Sim, sampled at 5 Hz. All planners in one world start from the same pose and face the same obstacles and goals; only the planner differs.</p>
+  <div class="demo" id="demo-replay">
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Experiment">
+        <button type="button" data-group="fresh" aria-pressed="true">Feedback rules · 20 worlds</button>
+        <button type="button" data-group="long" aria-pressed="false">Long options · 12 worlds</button>
+      </div>
+      <label>World <select id="rp-world" aria-label="World"></select></label>
+      <button type="button" id="rp-prev" aria-label="Previous world">‹</button>
+      <button type="button" id="rp-next" aria-label="Next world">›</button>
+    </div>
+    <div class="demo-grid">
+      <div class="stage"><canvas id="rp-canvas" aria-label="Top view of the arena with the tracks of each planner"></canvas></div>
+      <div>
+        <div class="arms" id="rp-arms"></div>
+        <div class="lanes" id="rp-lanes"></div>
+        <div class="lanes-cap">One row per planner. Each tick is an option selection; the block marks where the attempt ended.</div>
+        <p class="small" id="rp-note"></p>
+      </div>
+    </div>
+    <div class="transport">
+      <button type="button" class="primary" id="rp-play">Play</button>
+      <input type="range" id="rp-seek" min="0" max="135" step="0.2" value="0" aria-label="Time">
+      <span class="time" id="rp-time">0.0 s</span>
+      <select id="rp-speed" aria-label="Playback speed"><option value="4">4×</option><option value="8" selected>8×</option><option value="16">16×</option><option value="1">1×</option></select>
+    </div>
+  </div>
+
+  <h3>2. Drive the robot with your own option library</h3>
+  <p>Drag the goals and obstacles, choose which options the planner may use, and run it. The motion is drawn from measured executions of each option, so an option the planner believes in can still go nowhere.</p>
+  <div class="demo" id="demo-play">
+    <div class="demo-grid">
+      <div>
+        <div class="stage"><canvas id="pg-canvas" aria-label="Editable arena"></canvas><div class="hint">Drag goals and obstacles</div></div>
+        <div class="controls" style="margin-top:12px">
+          <button type="button" class="primary" id="pg-run">Run once</button>
+          <button type="button" id="pg-batch">Run 100 attempts</button>
+          <button type="button" id="pg-random">Random world</button>
+          <label>Goals <select id="pg-goals"><option>1</option><option selected>2</option><option>3</option></select></label>
+          <label>Load <select id="pg-load" aria-label="Load a logged world"><option value="">a logged world…</option></select></label>
+        </div>
+        <p class="status" id="pg-status" role="status"></p>
+      </div>
+      <div>
+        <div class="controls">
+          <button type="button" data-preset="base">Original 9</button>
+          <button type="button" data-preset="live">Without the two 0.5 s options</button>
+          <button type="button" data-preset="all">All 15</button>
+        </div>
+        <div class="optgrid" id="pg-options"></div>
+        <p class="small">Dashed boxes are the six options calibrated later in the study. Names give direction and pulse length.</p>
+        <div class="sliders">
+          <label>Selection cap <output id="pg-cap-out">24</output><input type="range" id="pg-cap" min="8" max="40" step="1" value="24"></label>
+        </div>
+        <div class="controls">
+          <label><input type="checkbox" id="pg-rule" checked> After a stalled option, do not repeat it</label>
+          <label>Friction <select id="pg-friction"><option value="1.2">1.2</option><option value="0.3">0.3</option></select></label>
+        </div>
+        <div class="tablewrap" style="margin:6px 0 0"><table class="log" id="pg-log"><thead><tr><th>Options</th><th>Cap</th><th>Rule</th><th>Friction</th><th>Passed</th></tr></thead><tbody></tbody></table></div>
+        <p class="small"><strong>This is a simplified planner</strong>: a three-step lookahead on a route-distance map, written for this page. It is not the controller or the evaluator behind the reported numbers, and its pass rates are not results of the study.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>3. Does the best library carry over to a new condition?</h3>
+  <p>Each dot is one of 40 random 9-option libraries, placed by its pass rate under two conditions. If the dots line up, a library remembered from the first condition is still a good choice in the second, and there is little for a smarter improver to add.</p>
+  <div class="demo" id="demo-regime">
+    <div class="controls">
+      <label>Remembered from <select id="rg-a"></select></label>
+      <label>Used in <select id="rg-b"></select></label>
+      <div class="seg" role="group" aria-label="Libraries carried over">
+        <button type="button" data-budget="1" aria-pressed="false">Carry 1</button>
+        <button type="button" data-budget="2" aria-pressed="true">Carry 2</button>
+        <button type="button" data-budget="3" aria-pressed="false">Carry 3</button>
+      </div>
+    </div>
+    <div class="demo-grid">
+      <div class="chartbox"><svg class="chart" id="rg-chart" viewBox="0 0 440 440" role="img" aria-label="Scatter of library pass rates under the two conditions"></svg><div class="tip" id="rg-tip"></div>
+        <div class="legendrow"><span><i class="carried"></i>carried over (best in the first condition)</span><span><i class="best"></i>best in the second condition</span><span><i></i>other libraries</span></div>
+      </div>
+      <div>
+        <div class="statgrid" id="rg-stats"></div>
+        <p class="small" id="rg-detail">Click a dot to see which options that library holds.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>4. How large must an effect be for the gate to see it?</h3>
+  <p>The handoff gate is an exact one-sided sign test on paired worlds at 0.05. Set how often the child wins and loses a world against its control, and how many fresh worlds a round has.</p>
+  <div class="demo" id="demo-gate">
+    <div class="demo-grid">
+      <div>
+        <div class="sliders">
+          <label>Fresh worlds per round <output id="gt-n-out">40</output><input type="range" id="gt-n" min="10" max="200" step="1" value="40"></label>
+          <label>Worlds only the child passes <output id="gt-w-out">10 %</output><input type="range" id="gt-w" min="0" max="40" step="1" value="10"></label>
+          <label>Worlds only the control passes <output id="gt-l-out">0 %</output><input type="range" id="gt-l" min="0" max="30" step="1" value="0"></label>
+        </div>
+        <div class="controls">
+          <button type="button" data-gate="40,10,0">A 40-world round, 10 % wins</button>
+          <button type="button" data-gate="20,25,0">Hand rules vs frozen, as measured</button>
+          <button type="button" data-gate="120,10,0">Three times the worlds</button>
+        </div>
+        <div class="statgrid" id="gt-stats"></div>
+      </div>
+      <div class="chartbox"><svg class="chart" id="gt-chart" viewBox="0 0 440 300" role="img" aria-label="Chance that the gate passes against the number of worlds"></svg><div class="tip" id="gt-tip"></div>
+        <p class="small">Chance that the gate passes, against the number of fresh worlds, for the win and loss rates you set. The dashed line marks 80 %.</p>
+      </div>
+    </div>
+  </div>
+</div></section>
 
 <section id="question"><div class="wrap">
   <h2>A test of recursive self-improvement that can fail</h2>
@@ -236,5 +354,6 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14.5px;border-top:1px so
   document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
 })();
 </script>
+<script src="demos.js" defer></script>
 </body>
 </html>
