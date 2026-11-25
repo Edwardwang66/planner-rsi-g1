@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Does a Planner's Improver Improve Itself?</title>
+<meta name="description" content="Three controlled designs for recursive self-improvement on a simulated Unitree G1 humanoid: zero accepted handoffs, two adaptations that held up, and a measured account of why.">
+<style>
+:root{
+  --bg:#fbfaf7; --surface:#ffffff; --ink:#1b1d21; --muted:#5d6470; --line:#e3e0d8;
+  --accent:#1f5fc4; --accent-ink:#ffffff; --good:#1e7d4f; --warn:#b4541a; --chip:#eef2f9;
+  --shadow:0 1px 2px rgba(20,24,32,.06),0 8px 24px rgba(20,24,32,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#111317; --surface:#191c22; --ink:#eceef2; --muted:#a2a9b5; --line:#2b3039;
+    --accent:#7fb0ff; --accent-ink:#0d1422; --good:#6fd3a0; --warn:#f0a56a; --chip:#222834;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35); }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 "Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+.wrap{max-width:1060px;margin:0 auto;padding:0 20px}
+nav{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:18px;align-items:center;height:52px;overflow-x:auto;white-space:nowrap}
+nav a{color:var(--muted);text-decoration:none;font-size:14.5px}
+nav a:hover{color:var(--ink)}
+nav .brand{color:var(--ink);font-weight:650;margin-right:auto}
+header{padding:64px 0 28px}
+.kicker{font-size:13.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);font-weight:650}
+h1{font-size:clamp(30px,5vw,50px);line-height:1.12;margin:.35em 0 .3em;letter-spacing:-.02em;text-wrap:balance}
+.lede{font-size:clamp(18px,2.2vw,21px);color:var(--muted);max-width:780px;text-wrap:pretty}
+.byline{margin-top:18px;color:var(--muted);font-size:15px}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.btn{display:inline-block;padding:10px 16px;border-radius:9px;text-decoration:none;font-weight:600;font-size:15px;border:1px solid var(--line);color:var(--ink);background:var(--surface)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.hero-figs{display:grid;grid-template-columns:.62fr 1.5fr 1.5fr;gap:12px;margin-top:34px;align-items:stretch}
+.hero-figs figure{margin:0}
+.hero-figs img{height:100%;object-fit:cover}
+figure{margin:22px 0 6px}
+figure img,.hero-figs img{width:100%;display:block;background:#fff;border-radius:12px;border:1px solid var(--line);box-shadow:var(--shadow);cursor:zoom-in}
+figcaption{font-size:14.5px;color:var(--muted);margin-top:9px;max-width:820px}
+section{padding:44px 0;border-top:1px solid var(--line);scroll-margin-top:52px}
+h2{font-size:clamp(23px,3vw,30px);line-height:1.2;margin:0 0 .5em;letter-spacing:-.012em;text-wrap:balance}
+h3{font-size:19.5px;margin:2em 0 .3em;line-height:1.3;text-wrap:balance}
+p{max-width:800px;margin:.7em 0}
+ul{max-width:800px;padding-left:1.2em}
+li{margin:.3em 0}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:26px 0 4px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 16px 14px;box-shadow:var(--shadow)}
+.tile .num{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.tile .lab{font-size:14px;color:var(--muted);margin-top:6px;line-height:1.4}
+.tile.zero .num{color:var(--warn)} .tile.good .num{color:var(--good)}
+.tablewrap{overflow-x:auto;margin:18px 0}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:15.5px;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:650}
+tr:last-child td{border-bottom:0}
+.chip{display:inline-block;background:var(--chip);border-radius:999px;padding:2px 10px;font-size:13.5px;font-weight:600}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.note{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;max-width:820px;margin:18px 0}
+.note p{margin:.3em 0}
+code{font:14.5px/1.5 ui-monospace,"Cascadia Code",Consolas,monospace;background:var(--chip);padding:2px 6px;border-radius:5px;overflow-wrap:anywhere}
+pre{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;max-width:820px}
+pre code{background:none;padding:0}
+footer{padding:36px 0 60px;color:var(--muted);font-size:14.5px;border-top:1px solid var(--line)}
+#lightbox{position:fixed;inset:0;background:rgba(10,12,16,.86);display:none;align-items:center;justify-content:center;z-index:50;padding:18px;cursor:zoom-out}
+#lightbox img{max-width:100%;max-height:100%;background:#fff;border-radius:8px}
+@media (max-width:820px){
+  .tiles{grid-template-columns:repeat(2,1fr)} .two{grid-template-columns:1fr}
+  .hero-figs{grid-template-columns:1fr 1fr} .hero-figs figure:first-child{display:none}
+  header{padding-top:40px}
+}
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <a class="brand" href="#top">Planner RSI · Unitree G1</a>
+  <a href="#question">Question</a><a href="#designs">Designs</a><a href="#results">Results</a>
+  <a href="#why">Why no handoff</a><a href="#literature">Literature</a><a href="#next">Next</a><a href="#reproduce">Reproduce</a>
+</div></nav>
+
+<header id="top"><div class="wrap">
+  <div class="kicker">Recursive self-improvement · humanoid navigation · negative result</div>
+  <h1>Does a planner's improver improve itself?</h1>
+  <p class="lede">We built three designs in which an improver revises its own procedure for modifying a humanoid robot's planner, and tested each against a fixed first-generation improver given the same memory. None produced a recursive handoff. Two adaptations held up on fresh worlds, and we measured why recursion stays below detection in this system.</p>
+  <div class="byline">Edward Wang · UC San Diego · ECE 285, Fall 2026</div>
+  <div class="cta">
+    <a class="btn primary" href="assets/final-report.pdf">Read the report (PDF)</a>
+    <a class="btn" href="#results">See the results</a>
+    <a class="btn" href="#reproduce">Reproduce</a>
+  </div>
+  <div class="hero-figs">
+    <figure><img src="assets/robot_closeup.png" alt="Unitree G1 model in its measured pose"></figure>
+    <figure><img src="assets/arena_base.png" alt="Base planner stalls on an ordered two-region task"></figure>
+    <figure><img src="assets/arena_a2.png" alt="With feedback rules the same world is solved"></figure>
+  </div>
+  <figcaption>The testbed, drawn from logged attempts: a Unitree G1 in Isaac Sim (PhysX, 200 Hz) with a frozen, blind locomotion policy. Middle: the base planner stalls on an ordered task. Right: with hand-written feedback rules the same world is solved in 89 s.</figcaption>
+
+  <div class="tiles">
+    <div class="tile zero"><div class="num">0</div><div class="lab">accepted recursive handoffs in three designs</div></div>
+    <div class="tile good"><div class="num">13 → 16</div><div class="lab">of 20 fresh worlds with hand-written feedback rules (5 wins, no loss)</div></div>
+    <div class="tile good"><div class="num">8 vs 5</div><div class="lab">of 12 fresh worlds in physics with calibrated options; predicted 8.19 vs 5.25 before the run</div></div>
+    <div class="tile"><div class="num">20+</div><div class="lab">regimes tested for whether remembered solutions stop transferring</div></div>
+  </div>
+</div></header>
+
+<section id="question"><div class="wrap">
+  <h2>A test of recursive self-improvement that can fail</h2>
+  <p>A system that gets better over time may be improving itself recursively, or only accumulating data, searching more, or being engineered. Comparing a later generation with the first one cannot tell these apart.</p>
+  <p>We define a <strong>recursive handoff</strong> strictly. An improver <em>I<sub>g</sub></em> turns logged experience into a modification of the planner, and also produces its successor <em>I<sub>g+1</sub></em>. The handoff counts only if the planner built by <em>I<sub>g+1</sub></em> beats, on fresh worlds and at the same budget:</p>
+  <ul>
+    <li>the planner built by the <strong>fixed first-generation improver with the same memory</strong>,</li>
+    <li>a <strong>hand-written repair</strong>,</li>
+    <li>and does not lose to the frozen planner or to <strong>equal-budget search</strong>.</li>
+  </ul>
+  <p>The objective, fixed before any experiment, required at least two such handoffs. Adaptation and engineering gains were never to be relabeled as recursive improvement.</p>
+  <div class="two">
+    <figure><img src="assets/method_loop.png" alt="The loop under test"><figcaption>The loop under test. Blue: what a generation builds. Orange: how it produces its successor. Grey: fixed parts no generation can change.</figcaption></figure>
+    <figure><img src="assets/method_gate.png" alt="Gate outcomes and power"><figcaption>Top: outcomes over 20 worlds for which the sign test passes. Bottom: probability that one gating comparison passes versus worlds per round.</figcaption></figure>
+  </div>
+</div></section>
+
+<section id="designs"><div class="wrap">
+  <h2>Three designs, no handoff</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Design</th><th>What a generation changes</th><th>Physics</th><th>Adaptation found</th><th>Handoffs</th></tr></thead>
+    <tbody>
+      <tr><td><strong>M3</strong><br>configuration ordering</td><td>a rule ordering six planner configurations</td><td>72 attempts, 2 rounds of 6 worlds</td><td>none: the child tied every control</td><td><span class="chip">0 of 2</span></td></tr>
+      <tr><td><strong>v4</strong><br>feedback rules</td><td>the configuration of a rule learner over a ledger of logged choices</td><td>123 cohort attempts</td><td>hand rules: 13 → 16 of 20 fresh worlds; learned rules: 8 and 10</td><td><span class="chip">0</span> no child emitted</td></tr>
+      <tr><td><strong>v5</strong><br>action vocabulary</td><td>which new motion options to calibrate and keep</td><td>28 calibration runs, 24 validation attempts</td><td>two long options: 8 vs 5 of 12 fresh worlds (p = 0.19)</td><td><span class="chip">0</span> gated out offline</td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+
+<section id="results"><div class="wrap">
+  <h2>Results</h2>
+
+  <h3>The base planner loses its budget inside the episode</h3>
+  <p>In 120 logged attempts, 37&nbsp;% of selections stalled. Two 0.5&nbsp;s options stalled 98–99&nbsp;% of the time, and repeating a stalled option stalled again in 385 of 388 cases. Ordering whole configurations, which M3 revised, had no headroom: the best single configuration passes 15 of 20 worlds and a per-world oracle 17.</p>
+  <figure><img src="assets/fig_diagnosis.png" alt="Stall diagnosis"><figcaption>Stall rate per option (a), what follows a stall (b), and stall rate by option and goal bearing (c).</figcaption></figure>
+
+  <h3>Hand-written rules help on fresh worlds; learned rules hurt</h3>
+  <p>Two rules written by hand (drop the dead options; after a stall, do not repeat) pass 16 of 20 fresh worlds against 13 for the frozen planner. Rules learned from the ledger pass 8 and 10: the ledger measures straight-line progress, so the detours a route needs look like stalls and get forbidden.</p>
+  <figure><img src="assets/fig_fresh.png" alt="Fresh-world comparison"><figcaption>Twenty fresh worlds, one attempt per planner: worlds passed, stalled selections, selections where rules left no choice, and use of the dead options.</figcaption></figure>
+
+  <h3>A calibrated action vocabulary, predicted before physics ran</h3>
+  <p>v5 judges candidates in closed loop with an evaluator that replays the real controller against 2,428 measured physics executions (Brier score 0.154, against 0.25 for the nominal model). Long motion options, calibrated in physics, raise ordered-task success in the evaluator from 0.51 to 0.73. On 12 fresh worlds in physics the calibrated library passed 8 against 5; the predictions written beforehand were 8.19 and 5.25. At this sample size the difference is consistent with the prediction, not proof of it (p = 0.19).</p>
+  <div class="two">
+    <figure><img src="assets/pilot-evaluator.png" alt="Calibrated library in the evaluator"><figcaption>The calibrated library in the evaluator on 160 hold-out worlds.</figcaption></figure>
+    <figure><img src="assets/c2.png" alt="Physics validation"><figcaption>Physics on 12 fresh ordered worlds. Bars: predictions made before physics. Dots: outcomes.</figcaption></figure>
+  </div>
+
+  <h3>The gain is concentrated in one acquisition</h3>
+  <p>Starting from the calibrated library, each generation swaps in the best of about 45 candidate options. On hold-out worlds the first swap is worth +0.167; the second and third +0.017 and +0.006. Relaxing the planner's budget lowers the first gain and leaves later ones worth a few points.</p>
+  <figure><img src="assets/saturation-caps.png" alt="Acquisition chain"><figcaption>The acquisition chain under the released caps and with 36 selections. Bars are in-sample; diamonds are hold-out worlds.</figcaption></figure>
+</div></section>
+
+<section id="why"><div class="wrap">
+  <h2>Why no handoff is detectable here</h2>
+  <p>A handoff is a difference between two improvers that see the same memory, so it can only come from what a revised procedure proposes differently. After v5 we derived four conditions a design would have to meet offline before physics is worth running: an interacting modification space, a binding budget, headroom that renews while remembered solutions transfer poorly, and a procedure effect of at least 0.1 in pass rate. These conditions are post hoc, not a preregistration.</p>
+
+  <h3>Regimes change difficulty, not which library is best</h3>
+  <p>Forty random option libraries were evaluated across friction 0.3, 0.6 and 1.2, 1 to 12 obstacles, and planner budgets of 18, 24 and 36 selections. Rankings agree about as well as identical regimes would. Re-screening the two or three best remembered libraries recovers each regime's best to within 0.017. Proxies for a 5° slope, drifting obstacles and a different body give the same answer.</p>
+  <figure><img src="assets/regime-summary.png" alt="Regime summary"><figcaption>(a) Rank correlation of 40 library values between regimes against the noise ceiling. (b) Loss when the fixed improver re-screens its best remembered libraries in the new regime.</figcaption></figure>
+
+  <h3>Where a revised procedure does gain, a hand-written rule gets it too</h3>
+  <p>Only constraint regimes, which make some options unusable, reorder the libraries. In the strongest case a procedure that uses the constraint beats memory by 0.09 on hold-out worlds, close to the 0.1 threshold. A hand-written ranking rule gains 0.089; learning adds 0.003 on top of it. With the constraint hidden, a simple hand-written heuristic beats all four learned designs we tried.</p>
+  <figure><img src="assets/verdict.png" alt="Verdict figure" style="max-width:760px"><figcaption>Every effect on one scale. Blue: later acquisitions found by the fixed chain. Orange: advantage of a revised procedure over fixed improver + memory, or of the learned model over the hand-written rule. Green: memory loss in a new regime.</figcaption></figure>
+
+  <div class="note">
+    <p><strong>In one sentence:</strong> every gain we found was either a one-off acquisition that a fixed procedure finds, or reachable by engineering.</p>
+  </div>
+
+  <h3>A physics smoke test of slopes</h3>
+  <p>The blind locomotion policy walks up to a 5° incline without falling, travels 19–35&nbsp;% farther uphill, and falls walking up 10°. An offline proxy showed that a slope regime would not break memory either, so its calibration was not run.</p>
+  <figure><img src="assets/slope-smoke.png" alt="Slope smoke test"><figcaption>Distance, lateral drift and peak tilt for four commands on 0°, 2.5°, 5° and 10° slopes. One run per command; physics is deterministic in the command sequence.</figcaption></figure>
+
+  <h3>What this does not show</h3>
+  <ul>
+    <li>It does not show that recursive self-improvement is impossible for robots.</li>
+    <li>The only child-versus-control comparison run in physics had 6 worlds; most claims are at evaluator level.</li>
+    <li>Executions were recorded on flat ground away from obstacles, and the planner has a privileged map.</li>
+    <li>A 40-world physics round would flag a 0.1 difference only about a third of the time.</li>
+  </ul>
+</div></section>
+
+<section id="literature"><div class="wrap">
+  <h2>How this compares with recent work</h2>
+  <p>A survey of 2024–2026 papers found that robot "self-improvement" almost always means a fixed improver repeatedly modifying an artifact: policy weights, reward code, policy code, skill libraries, imagined data, curricula or simulation parameters. The one verified robot case where the improver rewrites itself (Hyperagents, simulated quadruped reward design) beats a frozen improver with the same archive, but not the hand-tailored baseline. The best-controlled software study reports a null result on whether the self-improved agent is a better improver.</p>
+  <p>Our negative result matches that pattern. Two of our controls are rare in this literature: a hand-written arm at every comparison, and tests of whether remembered solutions transfer across regimes.</p>
+  <div class="two">
+    <figure><img src="assets/fig2_frozen_improver_controls.png" alt="Frozen-improver controls in the literature"><figcaption>Frozen-improver controls reported by DGM, Hyperagents and AIDE². Numbers are the authors' own.</figcaption></figure>
+    <figure><img src="assets/fig3_held_out_and_hand_rules.png" alt="Held-out shrinkage and hand rules"><figcaption>Left: search-set gains shrinking on held-out episodes in an embodied architecture-search study. Middle and right: our hand-rule and hidden-constraint controls.</figcaption></figure>
+  </div>
+  <p style="color:var(--muted);font-size:15px">Literature numbers are self-reported by the cited papers; some sources were read only as abstracts. We found no independent replications.</p>
+</div></section>
+
+<section id="next"><div class="wrap">
+  <h2>What would make a positive test possible</h2>
+  <p>Recursion has been measured only where the modification space is open-ended code, the improver is a language model, and runs last 80–100 iterations. Our space, a choice of nine motion options, saturated after one step.</p>
+  <p>The next design keeps the evaluator and every control, and changes one thing: an LLM coding agent rewrites the planner's selection policy as code. There is headroom for it: the best fixed library passes 0.57 of three-visit worlds, while picking the best library per world would pass 0.78. The design fixes its conditions and kill criteria before any run, and treats physics as a validity check, since the handoff claim would be an evaluator-level claim.</p>
+  <p>The most likely outcome is still that the hand-written arm ties. That would be a stronger negative result than this one, because that system could have shown recursion.</p>
+</div></section>
+
+<section id="reproduce"><div class="wrap">
+  <h2>Reproduce the report</h2>
+  <p>The report rebuilds from stored results with one command. It runs no physics and no evaluator rollouts, redraws the figures, rebuilds the PDF, and checks 16 numbers quoted in the text against the data.</p>
+  <pre><code>python -B tmp/pdfs/final_20261112/reproduce.py</code></pre>
+  <div class="tablewrap"><table>
+    <thead><tr><th>What</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr><td>Final report</td><td><a href="assets/final-report.pdf">final-report.pdf</a></td></tr>
+      <tr><td>Summary of the result</td><td><code>docs/research/2026-11-12-rsi-route-final.md</code></td></tr>
+      <tr><td>Every regime test</td><td><code>docs/superpowers/specs/2026-11-12-v6-sketch.md</code></td></tr>
+      <tr><td>Evaluator and analysis scripts</td><td><code>tmp/robot_checks/v5_*.py</code>, <code>v6_*.py</code></td></tr>
+      <tr><td>Result data</td><td><code>output/robot_rsi/v5_calibration/*.json</code></td></tr>
+      <tr><td>Next design (draft)</td><td><code>docs/superpowers/specs/2026-11-24-v6-llm-planner-code-design-draft.md</code></td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+
+<footer><div class="wrap">
+  Simulated Unitree G1 in Isaac Sim 5.1 / Isaac Lab, with the official Unitree locomotion policy, frozen. All experiments are in simulation.
+</div></footer>
+
+<div id="lightbox" role="dialog" aria-label="Enlarged figure"><img alt=""></div>
+<script>
+(function(){
+  var box=document.getElementById('lightbox'),big=box.querySelector('img');
+  document.querySelectorAll('figure img').forEach(function(im){
+    im.addEventListener('click',function(){big.src=im.src;big.alt=im.alt;box.style.display='flex';});
+  });
+  function close(){box.style.display='none';big.src='';}
+  box.addEventListener('click',close);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
+})();
+</script>
+</body>
+</html>
